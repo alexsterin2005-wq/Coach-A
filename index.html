@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Book a Lesson with Coach A</title>
+	<style>
+		body {
+			font-family: 'Segoe UI', Arial, sans-serif;
+			background: #f3f4f6;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.container {
+			background: #fff;
+			border-radius: 18px;
+			box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+			padding: 2.5rem 2rem;
+			max-width: 400px;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		h1 {
+			font-size: 2rem;
+			color: #2563eb;
+			margin-bottom: 1.2rem;
+			text-align: center;
+		}
+		label {
+			font-weight: 600;
+			color: #374151;
+			margin-bottom: 0.3rem;
+			display: block;
+		}
+		input, select, textarea {
+			width: 100%;
+			padding: 0.7rem 1rem;
+			border-radius: 8px;
+			border: 1.5px solid #e5e7eb;
+			font-size: 1rem;
+			background: #f8fafc;
+			margin-bottom: 1rem;
+		}
+		input:focus, select:focus, textarea:focus {
+			border-color: #2563eb;
+			outline: none;
+		}
+		button {
+			background: #2563eb;
+			color: #fff;
+			font-weight: 700;
+			font-size: 1.1rem;
+			border: none;
+			border-radius: 12px;
+			padding: 0.8rem 2rem;
+			cursor: pointer;
+			margin-top: 0.5rem;
+			transition: background 0.2s, transform 0.2s;
+		}
+		button:hover {
+			background: #1e40af;
+			transform: translateY(-2px);
+		}
+		.confirmation {
+			color: #059669;
+			font-weight: 600;
+			text-align: center;
+			margin-top: 1rem;
+		}
+	</style>
+</head>
+<body>
+	<div class="container" id="landing">
+		<div class="coach-photo">
+			<img src="https://i.imgur.com/4unb6ao.jpg" alt="Coach A">
+		</div>
+		<h1>Coach A</h1>
+		<div class="bio" style="margin-bottom:1.5rem;">
+			Division 1 tennis player at Dayton. Over 15 years of coaching experience helping players of all levels improve their game.
+		</div>
+		<button class="book-btn" id="bookNowBtn" style="background:#2563eb;">Book Now</button>
+	</div>
+	<div class="container" id="booking" style="display:none;max-width:480px;">
+		<h1>Schedule Your Lesson</h1>
+		<form id="bookingForm">
+			<label for="name">Your Name</label>
+			<input type="text" id="name" name="name" required>
+			<label for="email">Email</label>
+			<input type="email" id="email" name="email" required>
+			<label for="date">Select a Date</label>
+			<input type="date" id="date" name="date" required>
+			<div id="weather" style="margin-bottom:1rem;color:#2563eb;font-weight:600;"></div>
+			<label for="time">Select a Time</label>
+			<select id="time" name="time" required></select>
+			<label for="duration">Lesson Length</label>
+			<select id="duration" name="duration" required>
+				<option value="60">1 hour</option>
+				<option value="90">1.5 hours</option>
+			</select>
+			<div id="priceDisplay" style="margin:0.5rem 0 1rem 0;font-weight:600;color:#2563eb;"></div>
+			<button type="submit" class="submit-btn">Complete Booking</button>
+			<div id="confirmation" class="confirmation"></div>
+		</form>
+	</div>
+	<script>
+		// Show booking form on button click
+		document.getElementById('bookNowBtn').onclick = function() {
+			document.getElementById('landing').style.display = 'none';
+			document.getElementById('booking').style.display = 'flex';
+		};
+
+		// Helper: get bookings from localStorage
+		function getBookings() {
+			return JSON.parse(localStorage.getItem('coachABookings') || '[]');
+		}
+		function saveBooking(booking) {
+			const bookings = getBookings();
+			bookings.push(booking);
+			localStorage.setItem('coachABookings', JSON.stringify(bookings));
+		}
+
+		// Populate time options 8am-8pm, disabling booked slots
+		function populateTimes(dateStr) {
+			const timeSelect = document.getElementById('time');
+			timeSelect.innerHTML = '';
+			const bookings = getBookings().filter(b => b.date === dateStr);
+			for(let h=8; h<=20; h++) {
+				let hour = h > 12 ? h-12 : h;
+				let ampm = h >= 12 ? 'PM' : 'AM';
+				let label = `${hour}:00 ${ampm}`;
+				let isBooked = bookings.some(b => b.time === label);
+				let option = document.createElement('option');
+				option.value = label;
+				option.textContent = label + (isBooked ? ' (Booked)' : '');
+				option.disabled = isBooked;
+				timeSelect.appendChild(option);
+			}
+		}
+
+		// Price calculation
+		function updatePrice() {
+			const duration = document.getElementById('duration').value;
+			const base = 65 * (parseInt(duration)/60);
+			const fee = base * 0.025;
+			const total = base + fee;
+			document.getElementById('priceDisplay').textContent = `Total: $${total.toFixed(2)} ($${base.toFixed(2)} + $${fee.toFixed(2)} booking fee)`;
+		}
+		document.getElementById('duration').onchange = updatePrice;
+
+		// Real weather display using OpenWeatherMap API
+		async function showWeather(dateStr) {
+			if (!dateStr) { document.getElementById('weather').textContent = ''; return; }
+			// Use Northampton, US as default location
+			const apiKey = 'efdc5462bb4fc6c20d70e849dd56f173';
+			const lat = 42.3281, lon = -72.6644;
+			// Get forecast for next 7 days
+			try {
+				const resp = await fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=minutely,hourly,alerts,current&units=imperial&appid=${apiKey}`);
+				const data = await resp.json();
+				// Find the forecast for the selected date
+				const target = new Date(dateStr);
+				target.setHours(12,0,0,0);
+				let found = null;
+				for (const day of data.daily) {
+					const dayDate = new Date(day.dt * 1000);
+					dayDate.setHours(12,0,0,0);
+					if (dayDate.getTime() === target.getTime()) { found = day; break; }
+				}
+				if (found) {
+					const desc = found.weather[0].description;
+					const icon = found.weather[0].icon;
+					const temp = Math.round(found.temp.day);
+					document.getElementById('weather').innerHTML = `<img src="https://openweathermap.org/img/wn/${icon}.png" style="vertical-align:middle"> ${desc}, ${temp}&deg;F`;
+				} else {
+					document.getElementById('weather').textContent = 'Weather unavailable for this date.';
+				}
+			} catch (e) {
+				document.getElementById('weather').textContent = 'Weather unavailable.';
+			}
+		}
+
+		document.getElementById('date').onchange = function() {
+			document.getElementById('confirmation').textContent = '';
+			const dateStr = this.value;
+			populateTimes(dateStr);
+			showWeather(dateStr);
+		};
+
+		// Initial population
+		const today = new Date().toISOString().split('T')[0];
+		document.getElementById('date').setAttribute('min', today);
+		populateTimes(today);
+		showWeather(today);
+		updatePrice();
+
+		// Booking form submit
+		document.getElementById('bookingForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			const name = document.getElementById('name').value;
+			const email = document.getElementById('email').value;
+			const date = document.getElementById('date').value;
+			const time = document.getElementById('time').value;
+			const duration = document.getElementById('duration').value;
+			const notes = document.getElementById('notes').value;
+			saveBooking({ name, email, date, time, duration, notes });
+			document.getElementById('confirmation').textContent = '✅ Your lesson is booked! Coach A will contact you soon.';
+			// Email confirmation (demo only)
+			setTimeout(()=>{
+				alert('Confirmation email sent to ' + email);
+			}, 500);
+			document.getElementById('bookingForm').reset();
+			populateTimes(date);
+			updatePrice();
+		});
+		// Responsive/mobile tweaks (simple)
+		window.addEventListener('resize', function() {
+			document.querySelectorAll('.container').forEach(c => {
+				c.style.maxWidth = window.innerWidth < 500 ? '98vw' : '400px';
+			});
+		});
+		window.dispatchEvent(new Event('resize'));
+	</script>
+	</script>
+</body>
+</html>
