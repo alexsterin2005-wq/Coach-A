@@ -1,110 +1,39 @@
 <!DOCTYPE html>
-      // Only one coach: Coach A
-      return `
-        <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 py-8">
-          <div class="bg-white rounded-xl shadow-lg p-8 mb-8 flex flex-col items-center w-full max-w-md">
-            <h2 class="text-4xl font-extrabold mb-2 text-blue-900" style="font-family: 'Playfair Display', serif;">Coach A</h2>
-            <img src="https://i.imgur.com/4unb6ao.jpg" alt="Coach A" class="w-40 h-40 rounded-full object-cover border-4 border-blue-500 shadow-lg mb-4 mx-auto">
-            <p class="text-lg text-gray-700 mb-3 mt-2 text-center">🎾 USPTA Certified Tennis Professional</p>
-            <p class="text-lg text-gray-700 mb-6 text-center max-w-xl">Coach A is a Division 1 tennis player from the University of Dayton, bringing elite collegiate experience and a passion for developing players of all levels.</p>
-          </div>
-          <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md flex flex-col items-center">
-            <h2 class="text-2xl font-bold mb-6 pb-3 border-b text-center">Book a Lesson</h2>
-            <form id="bookingForm" class="w-full flex flex-col items-center">
-              <input type="hidden" id="coach" value="Coach A">
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Your Name</label>
-                <input type="text" id="name" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Email</label>
-                <input type="email" id="email" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Phone (optional)</label>
-                <input type="tel" id="phone" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Select a Date</label>
-                <input type="date" id="date" min="${new Date().toISOString().split('T')[0]}" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Select a Time</label>
-                <select id="time" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"></select>
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Lesson Length</label>
-                <select id="duration" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                  <option value="60">1 hour ($65)</option>
-                  <option value="90">1.5 hours ($97.50)</option>
-                </select>
-              </div>
-              <div class="w-full mb-4">
-                <label class="block text-sm font-semibold mb-2">Notes (optional)</label>
-                <textarea id="notes" rows="2" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
-              </div>
-              <button type="submit" class="w-full bg-blue-600 text-white px-6 py-3 rounded-full font-bold text-lg hover:bg-blue-700 transition mt-2">Book Lesson</button>
-              <div id="formMessage" class="mt-4 text-center"></div>
-            </form>
-          </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Jess Sims - Tennis Lessons</title>
+    <style>
+        ...existing code from user CSS...
+    </style>
+</head>
+<body>
+    <!-- Landing Page -->
+    <div class="landing-page" id="landingPage">
+        <div class="coach-card">
+            <div class="coach-photo">
+                <img src="https://i.imgur.com/4unb6ao.jpg" alt="Coach Jess Sims">
+            </div>
+            <h1>Coach Jess Sims</h1>
+            <p class="subtitle">Professional Tennis Coach</p>
+            <div style="margin-bottom:2rem;">
+                <p style="color:#64748b;line-height:1.8;text-align:left;margin-bottom:1rem;">
+                  With over 15 years of coaching experience, Coach Jess Sims has helped hundreds of players elevate their game from beginners to competitive athletes. Specializing in technique refinement, mental game development, and match strategy.
+                </p>
+                <p style="color:#64748b;line-height:1.8;text-align:left;">
+                  USPTA Certified | Division 1 College Player at Dayton | All Ages & Levels Welcome
+                </p>
+            </div>
+            <button class="book-btn" onclick="goToBooking()">Book a Lesson</button>
         </div>
-        <script>
-          // Generate time slots for 1hr and 1.5hr intervals from 8am-8pm
-          function generateTimeOptions() {
-            const select = document.getElementById('time');
-            select.innerHTML = '';
-            let times = [];
-            for (let h = 8; h <= 20; h++) {
-              times.push({ label: `${h}:00`, value: `${h}:00` });
-              if (h < 20) times.push({ label: `${h}:30`, value: `${h}:30` });
-            }
-            times.forEach(t => {
-              const opt = document.createElement('option');
-              opt.value = t.value;
-              opt.textContent = t.label;
-              select.appendChild(opt);
-            });
-          }
-          generateTimeOptions();
-
-          // Handle booking form submission
-          document.getElementById('bookingForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const coach = document.getElementById('coach').value;
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const phone = document.getElementById('phone').value;
-            const date = document.getElementById('date').value;
-            const time = document.getElementById('time').value;
-            const duration = document.getElementById('duration').value;
-            const notes = document.getElementById('notes').value;
-            const price = duration === '60' ? 65 : 97.5;
-            const bookingId = `#${Math.floor(Math.random()*100000)}`;
-            const bookingData = {
-              id: bookingId,
-              coach,
-              date,
-              time,
-              duration,
-              price: price.toFixed(2),
-              name,
-              email,
-              phone,
-              notes,
-              status: 'confirmed',
-              createdAt: new Date().toISOString()
-            };
-            // Save to Firebase
-            try {
-              await storage.add(bookingData);
-              await sendEmail(bookingData);
-              document.getElementById('formMessage').innerHTML = `<div class='text-green-700 font-bold'>✅ Booking Confirmed!<br>Confirmation #${bookingId}<br>Coach: ${coach}<br>Date: ${date} at ${time}<br>Duration: ${duration === '60' ? '1 hour' : '1.5 hours'}<br>Price: $${price.toFixed(2)}</div>`;
-              document.getElementById('bookingForm').reset();
-            } catch (err) {
-              document.getElementById('formMessage').innerHTML = `<div class='text-red-700 font-bold'>❌ Booking failed. Please try again.</div>`;
-            }
-          });
-        </script>
+    </div>
+    <!-- Booking Page -->
+    ...existing code from user booking page HTML...
+</body>
+<script>
+    ...existing code from user JS...
+</script>
       </main>
     </div>
   </div>
