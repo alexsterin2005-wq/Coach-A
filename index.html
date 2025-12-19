@@ -1,0 +1,569 @@
+</style>
+<style>
+	.admin-container { max-width: 600px; margin: 2rem auto; background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2.5rem 2rem; }
+	.admin-title { font-size: 2rem; color: #2563eb; margin-bottom: 1.2rem; text-align: center; }
+	.admin-section { margin-bottom: 2rem; }
+	.admin-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+	.admin-table th, .admin-table td { border: 1px solid #e5e7eb; padding: 0.5rem; text-align: center; }
+	.admin-table th { background: #f3f4f6; }
+	.admin-analytics { font-size: 1.1rem; color: #2563eb; font-weight: 600; }
+	.calendar-times-admin { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.5rem 1rem; margin-bottom: 1rem; }
+	.calendar-times-admin .booked { background: #2563eb; color: #fff; border-radius: 8px; padding: 0.5rem 0; font-weight: 600; }
+	.calendar-times-admin .empty { background: #e5e7eb; color: #888; border-radius: 8px; padding: 0.5rem 0; }
+</style>
+	<!-- Coach Login Button -->
+	<div style="text-align:center;margin-top:1.5rem;">
+		<div style="position:fixed;top:18px;right:24px;z-index:10;">
+			<button id="coachLoginBtn" style="background:#374151;color:#fff;padding:0.4rem 1.1rem;font-size:0.95rem;border-radius:8px;font-weight:600;border:none;cursor:pointer;">Coach Login</button>
+		</div>
+	</div>
+	<!-- Admin Login Modal -->
+	<div id="adminLoginModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);align-items:center;justify-content:center;z-index:1000;">
+		<div style="background:#fff;padding:2rem 2.5rem;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.12);max-width:320px;width:90vw;text-align:center;">
+			<h2 style="color:#2563eb;margin-bottom:1rem;">Coach Login</h2>
+			<input type="password" id="adminPassword" placeholder="Password" style="width:100%;padding:0.7rem 1rem;border-radius:8px;border:1.5px solid #e5e7eb;font-size:1rem;margin-bottom:1rem;">
+			<div id="adminLoginError" style="color:#dc2626;font-size:1rem;margin-bottom:1rem;"></div>
+			<button id="adminLoginSubmit" style="background:#2563eb;color:#fff;padding:0.7rem 2rem;border-radius:12px;font-weight:700;border:none;cursor:pointer;">Login</button>
+		</div>
+	</div>
+	<!-- Admin Page -->
+	<div id="adminPage" style="display:none;">
+		<div class="admin-container">
+			<div class="admin-title" style="margin-bottom:1.2rem;">Coach Dashboard</div>
+			<div style="display:flex;gap:2.5rem;align-items:center;margin-bottom:1.2rem;justify-content:center;">
+				<div class="admin-analytics" id="adminRevenue" style="font-size:1.13rem;"></div>
+				<div class="admin-analytics" id="adminLessonCount" style="font-size:1.13rem;"></div>
+			</div>
+			<div style="margin-bottom:1.2rem;">
+				<h3 style="color:#374151;font-size:1.13rem;margin-bottom:0.5rem;text-align:left;">All Lessons</h3>
+				<table class="admin-table" id="adminLessonsTable" style="width:100%;">
+					<thead><tr><th>Date</th><th>Time</th><th>Duration</th><th>Name</th><th>Email</th><th>Notes</th><th>Price</th><th>Cancel</th></tr></thead>
+					<tbody></tbody>
+				</table>
+				<div style="font-size:0.97rem;color:#374151;margin-top:0.5rem;">Cancellation Policy: If a lesson is cancelled within 24 hours of the scheduled time, a fee of $25 (1hr) or $35 (1.5hr) will be charged.</div>
+			</div>
+			<div style="text-align:center;margin-bottom:1.2rem;">
+				<button id="toggleCalendarBtn" style="background:#2563eb;color:#fff;padding:0.7rem 2rem;font-size:1.08rem;border-radius:12px;font-weight:700;border:none;cursor:pointer;">Show Weekly Calendar</button>
+			</div>
+			<div id="calendarExportBtns" style="margin-bottom:1rem;display:none;gap:1rem;align-items:center;justify-content:center;">
+				<button id="exportICS" style="background:#10b981;color:#fff;padding:0.6rem 1.5rem;font-size:1.05rem;border-radius:8px;font-weight:700;border:none;cursor:pointer;transition:background 0.2s;">Export to Calendar</button>
+				<button id="exportPDF" style="background:#a21caf;color:#fff;padding:0.6rem 1.5rem;font-size:1.05rem;border-radius:8px;font-weight:700;border:none;cursor:pointer;transition:background 0.2s;">Download to PDF</button>
+			</div>
+			<div class="calendar-week-admin" id="adminCalendar" style="display:none;"></div>
+			<div style="text-align:center;margin-top:1.5rem;">
+				<button onclick="document.getElementById('adminPage').style.display='none';document.getElementById('landing').style.display='flex';">Logout</button>
+			</div>
+		</div>
+	</div>
+	<script>
+		// Coach Login Modal logic
+		document.getElementById('coachLoginBtn').onclick = function() {
+			document.getElementById('adminLoginModal').style.display = 'flex';
+		};
+		document.getElementById('adminLoginSubmit').onclick = function() {
+			const pw = document.getElementById('adminPassword').value;
+			if (pw === '123') {
+				document.getElementById('adminLoginModal').style.display = 'none';
+				document.getElementById('landing').style.display = 'none';
+				document.getElementById('booking').style.display = 'none';
+				document.getElementById('adminPage').style.display = 'block';
+				renderAdmin();
+				document.getElementById('adminPassword').value = '';
+				document.getElementById('adminLoginError').textContent = '';
+			} else {
+				document.getElementById('adminLoginError').textContent = 'Incorrect password.';
+			}
+		};
+		// Close modal on outside click
+		document.getElementById('adminLoginModal').onclick = function(e) {
+			if (e.target === this) this.style.display = 'none';
+		};
+
+		// Admin dashboard rendering
+		function renderAdmin() {
+			const bookings = getBookings();
+			// Revenue and analytics
+			let revenue = 0;
+			bookings.forEach(b => {
+				const base = 65 * (parseInt(b.duration)/60);
+				const fee = base * 0.025;
+				revenue += base + fee;
+			});
+			document.getElementById('adminRevenue').textContent = `Total Revenue: $${revenue.toFixed(2)}`;
+			document.getElementById('adminLessonCount').textContent = `Total Lessons: ${bookings.length}`;
+			// Lessons table
+			const tbody = document.getElementById('adminLessonsTable').querySelector('tbody');
+			tbody.innerHTML = '';
+			bookings.forEach((b, idx) => {
+				const tr = document.createElement('tr');
+				tr.innerHTML = `<td>${b.date}</td><td>${b.time}</td><td>${b.duration} min</td><td>${b.name}</td><td>${b.email}</td><td>${b.notes||''}</td><td>$${(65*(parseInt(b.duration)/60)+65*(parseInt(b.duration)/60)*0.025).toFixed(2)}</td>`;
+				const td = document.createElement('td');
+				const btn = document.createElement('button');
+				btn.textContent = 'Cancel';
+				btn.style.background = '#dc2626';
+				btn.style.color = '#fff';
+				btn.style.border = 'none';
+				btn.style.borderRadius = '6px';
+				btn.style.padding = '0.4rem 0.8rem';
+				btn.style.fontWeight = '600';
+				btn.style.cursor = 'pointer';
+				btn.onclick = function() {
+					// Check if within 24 hours
+					const lessonDate = new Date(b.date + 'T' + (b.time.split(' ')[1]==='PM' && b.time.split(':')[0]!=='12'? (parseInt(b.time.split(':')[0])+12):b.time.split(':')[0]).toString().padStart(2,'0') + ':00:00');
+					const now = new Date();
+					const diff = (lessonDate - now) / (1000*60*60);
+					let fee = 0;
+					if (diff < 24) {
+						fee = (parseInt(b.duration) === 60) ? 25 : 35;
+						alert(`Late cancellation: $${fee} fee will be charged.`);
+					} else {
+						alert('Lesson cancelled with no fee.');
+					}
+					// Remove booking
+					const all = getBookings();
+					all.splice(idx, 1);
+					localStorage.setItem('coachABookings', JSON.stringify(all));
+					renderAdmin();
+				};
+				td.appendChild(btn);
+				tr.appendChild(td);
+				tbody.appendChild(tr);
+			});
+			// Weekly calendar grid (collapsible)
+			const calendar = document.getElementById('adminCalendar');
+			const exportBtns = document.getElementById('calendarExportBtns');
+			// Toggle weekly calendar
+			function renderCalendarTable() {
+				calendar.innerHTML = '';
+				const weekDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+				// Find the start of this week (Monday)
+				const now = new Date();
+				const dayOfWeek = (now.getDay() + 6) % 7; // 0=Monday, 6=Sunday
+				const monday = new Date(now);
+				monday.setDate(now.getDate() - dayOfWeek);
+				// Add calendar styles
+				const styleId = 'calendar-table-style';
+				if (!document.getElementById(styleId)) {
+				  const style = document.createElement('style');
+				  style.id = styleId;
+				  style.textContent = `
+					.calendar-table { border-collapse:separate; border-spacing:0; width:100%; min-width:700px; background:#f8fafc; border-radius:14px; overflow:hidden; box-shadow:0 2px 16px rgba(37,99,235,0.07); }
+					.calendar-table th { background:#2563eb; color:#fff; font-weight:700; padding:0.7rem 0.2rem; font-size:1.08rem; border-right:1px solid #e0e7ef; }
+					.calendar-table th:first-child { background:#f3f4f6; color:#374151; }
+					.calendar-table td { background:#fff; padding:0.6rem 0.2rem; min-width:90px; border-bottom:1px solid #e5e7eb; border-right:1px solid #e5e7eb; font-size:1.01rem; transition:background 0.2s; }
+					.calendar-table tr:last-child td { border-bottom:none; }
+					.calendar-table td.time-col { background:#f9fafb; font-weight:600; color:#2563eb; border-right:2px solid #e0e7ef; }
+					.calendar-table td.booked { background:linear-gradient(90deg,#dbeafe 60%,#a7f3d0 100%); color:#2563eb; font-weight:700; border-radius:7px; box-shadow:0 2px 8px rgba(16,185,129,0.07); cursor:pointer; }
+					.calendar-table td.booked:hover { background:linear-gradient(90deg,#2563eb 60%,#10b981 100%); color:#fff; }
+				  `;
+				  document.head.appendChild(style);
+				}
+				// Build table (always render full grid)
+				let table = '<div style="overflow-x:auto;"><table class="calendar-table">';
+				table += '<tr><th></th>';
+				for (let d = 0; d < 7; d++) {
+					table += `<th>${weekDays[d]}</th>`;
+				}
+				table += '</tr>';
+				for (let h = 8; h <= 20; h++) {
+					let hour = h > 12 ? h-12 : h;
+					let ampm = h >= 12 ? 'PM' : 'AM';
+					let label = `${hour}:00 ${ampm}`;
+					table += `<tr><td class="time-col">${label}</td>`;
+					for (let d = 0; d < 7; d++) {
+						const dateObj = new Date(monday);
+						dateObj.setDate(monday.getDate() + d);
+						const dateStr = dateObj.toISOString().split('T')[0];
+						const booking = bookings.find(b => b.date === dateStr && b.time === label);
+						if (booking) {
+							table += `<td class="booked" title="${booking.name} - ${booking.email}">${booking.name}<br><span style='font-size:0.93em;color:#374151;'>${booking.email}</span></td>`;
+						} else {
+							table += '<td></td>';
+						}
+					}
+					table += '</tr>';
+				}
+				table += '</table></div>';
+				calendar.innerHTML = table;
+				calendar.style.display = '';
+			}
+			document.addEventListener('DOMContentLoaded', function() {
+				const calendar = document.getElementById('adminCalendar');
+				const exportBtns = document.getElementById('calendarExportBtns');
+				const toggleBtn = document.getElementById('toggleCalendarBtn');
+				if (calendar && toggleBtn && exportBtns) {
+					calendar.style.display = 'none';
+					exportBtns.style.display = 'none';
+					toggleBtn.onclick = function() {
+						if (calendar.style.display === 'none') {
+							calendar.style.display = '';
+							exportBtns.style.display = 'flex';
+							toggleBtn.textContent = 'Hide Weekly Calendar';
+							renderCalendarTable();
+						} else {
+							calendar.style.display = 'none';
+							exportBtns.style.display = 'none';
+							toggleBtn.textContent = 'Show Weekly Calendar';
+							calendar.innerHTML = '';
+						}
+					};
+				}
+			});
+		}
+	</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Book a Lesson with Coach A</title>
+	<style>
+		body {
+			font-family: 'Segoe UI', Arial, sans-serif;
+			background: #f3f4f6;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.container {
+			background: #fff;
+			border-radius: 18px;
+			box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+			padding: 2.5rem 2rem;
+			max-width: 400px;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		h1 {
+			font-size: 2rem;
+			color: #2563eb;
+			margin-bottom: 1.2rem;
+			text-align: center;
+		}
+		label {
+			font-weight: 600;
+			color: #374151;
+			margin-bottom: 0.3rem;
+			display: block;
+		}
+		input, select, textarea {
+			width: 100%;
+			padding: 0.7rem 1rem;
+			border-radius: 8px;
+			border: 1.5px solid #e5e7eb;
+			font-size: 1rem;
+			background: #f8fafc;
+			margin-bottom: 1rem;
+		}
+		input:focus, select:focus, textarea:focus {
+			border-color: #2563eb;
+			outline: none;
+		}
+		button {
+			background: #2563eb;
+			color: #fff;
+			font-weight: 700;
+			font-size: 1.1rem;
+			border: none;
+			border-radius: 12px;
+			padding: 0.8rem 2rem;
+			cursor: pointer;
+			margin-top: 0.5rem;
+			transition: background 0.2s, transform 0.2s;
+		}
+		button:hover {
+			background: #1e40af;
+			transform: translateY(-2px);
+		}
+		.confirmation {
+			color: #059669;
+			font-weight: 600;
+			text-align: center;
+			margin-top: 1rem;
+		}
+	</style>
+</head>
+<body>
+	<div class="container" id="landing">
+		<div style="position:fixed;top:18px;right:240px;z-index:11;display:flex;gap:0.5rem;align-items:center;">
+			<button id="tabContact" class="tab-btn" style="background:#2563eb;color:#fff;padding:0.4rem 1.1rem;font-size:0.95rem;border-radius:8px;font-weight:600;border:none;cursor:pointer;">Contact Info</button>
+		</div>
+		<div id="contactDropdown" style="display:none;position:fixed;top:54px;right:240px;z-index:1001;background:#fff;border:1.5px solid #2563eb;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.10);padding:1rem 1.5rem;min-width:220px;text-align:left;">
+			<div style="font-size:1.08rem;color:#374151;">
+				<div style="margin-bottom:0.5rem;"><b>Phone:</b> (555) 123-4567</div>
+				<div><b>Email:</b> coacha@email.com</div>
+			</div>
+		</div>
+		<div class="coach-photo" style="clear:both;">
+			<img src="https://i.imgur.com/4unb6ao.jpg" alt="Coach A">
+		</div>
+		<h1>Coach A</h1>
+		<div class="bio" style="margin-bottom:1.5rem;">
+			Division 1 tennis player at Dayton. Over 15 years of coaching experience helping players of all levels improve their game.
+		</div>
+		<button class="book-btn" id="bookNowBtn" style="background:#2563eb;">Book Now</button>
+	</div>
+		<script>
+			// Contact Info dropdown logic
+			const contactBtn = document.getElementById('tabContact');
+			const contactDropdown = document.getElementById('contactDropdown');
+			contactBtn.onclick = function(e) {
+				e.stopPropagation();
+				contactDropdown.style.display = contactDropdown.style.display === 'none' ? 'block' : 'none';
+			};
+			document.addEventListener('click', function(e) {
+				if (contactDropdown.style.display === 'block' && !contactDropdown.contains(e.target) && e.target !== contactBtn) {
+					contactDropdown.style.display = 'none';
+				}
+			});
+		</script>
+	<style>
+		.container#booking {
+			display: none;
+			max-width: 420px;
+			margin: 1.1rem auto 0.5rem auto;
+			background: #fff;
+			border-radius: 18px;
+			box-shadow: 0 4px 32px rgba(37,99,235,0.08);
+			padding: 1.1rem 1rem 1.1rem 1rem;
+			font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+		}
+		#booking h1 {
+			text-align: center;
+			font-size: 1.25rem;
+			color: #2563eb;
+			margin-bottom: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.01em;
+		}
+		#bookingForm label {
+			display: block;
+			margin-top: 0.45rem;
+			margin-bottom: 0.18rem;
+			font-weight: 500;
+			color: #374151;
+			font-size: 1.01rem;
+		}
+		#bookingForm input[type="text"],
+		#bookingForm input[type="email"],
+		#bookingForm input[type="tel"],
+		#bookingForm input[type="date"],
+		#bookingForm select {
+			width: 100%;
+			padding: 0.45rem 0.6rem;
+			border-radius: 8px;
+			border: 1.5px solid #cbd5e1;
+			font-size: 1.01rem;
+			margin-bottom: 0.13rem;
+			background: #f8fafc;
+			transition: border 0.2s;
+		}
+		#bookingForm input:focus, #bookingForm select:focus {
+			border: 1.5px solid #2563eb;
+			outline: none;
+			background: #fff;
+		}
+		#calendar-times {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 0.4rem 0.5rem;
+			margin-bottom: 0.7rem;
+		}
+		#calendar-times button {
+			font-size: 1.01rem;
+			border-radius: 8px;
+			padding: 0.6rem 0.2rem;
+			font-weight: 600;
+			border: none;
+			transition: outline 0.2s, background 0.2s;
+		}
+		#calendar-times button:focus {
+			outline: 3px solid #10b981;
+		}
+		#priceDisplay {
+			margin: 0.5rem 0 0.7rem 0;
+			font-weight: 600;
+			color: #2563eb;
+			text-align: center;
+			font-size: 1.04rem;
+		}
+		.submit-btn {
+			width: 100%;
+			background: linear-gradient(90deg,#2563eb 60%,#10b981 100%);
+			color: #fff;
+			font-weight: 700;
+			font-size: 1.07rem;
+			border: none;
+			border-radius: 8px;
+			padding: 0.6rem 0;
+			margin-top: 0.7rem;
+			margin-bottom: 0.3rem;
+			cursor: pointer;
+			box-shadow: 0 2px 8px rgba(16,185,129,0.07);
+			transition: background 0.2s, box-shadow 0.2s;
+		}
+		.submit-btn:hover {
+			background: linear-gradient(90deg,#1d4ed8 60%,#059669 100%);
+			box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+		}
+		.confirmation {
+			text-align: center;
+			color: #059669;
+			font-weight: 600;
+			margin-top: 0.5rem;
+			font-size: 1.01rem;
+		}
+		@media (max-width: 600px) {
+			.container#booking {
+				max-width: 99vw;
+				padding: 0.7rem 0.1rem 0.7rem 0.1rem;
+				margin: 0.5rem auto 0.2rem auto;
+			}
+			#booking h1 {
+				font-size: 1.08rem;
+				margin-bottom: 0.4rem;
+			}
+			#calendar-times {
+				grid-template-columns: repeat(2, 1fr);
+				gap: 0.3rem 0.3rem;
+				margin-bottom: 0.4rem;
+			}
+			.submit-btn {
+				font-size: 0.97rem;
+				padding: 0.5rem 0;
+				margin-top: 0.5rem;
+			}
+		}
+	</style>
+	<div class="container" id="booking">
+			<h1>Schedule Your Lesson</h1>
+			<form id="bookingForm" autocomplete="off">
+					<label for="name">Your Name</label>
+					<input type="text" id="name" name="name" required>
+					<label for="email">Email</label>
+					<input type="email" id="email" name="email" required>
+					<label for="phone">Phone Number</label>
+					<input type="tel" id="phone" name="phone" required pattern="[0-9\-\+\(\) ]{7,}" placeholder="e.g. (555) 123-4567">
+					<label for="date">Select a Date</label>
+					<input type="date" id="date" name="date" required>
+					<label for="time">Select a Time</label>
+					<div id="calendar-times"></div>
+					<input type="hidden" id="time" name="time" required>
+					<label for="duration">Lesson Length</label>
+					<select id="duration" name="duration" required>
+							<option value="60">1 hour</option>
+							<option value="90">1.5 hours</option>
+					</select>
+					<div id="priceDisplay"></div>
+					<button type="submit" class="submit-btn">Complete Booking</button>
+					<div id="confirmation" class="confirmation"></div>
+			</form>
+	</div>
+	<script>
+		// Show booking form on button click
+		document.getElementById('bookNowBtn').onclick = function() {
+			document.getElementById('landing').style.display = 'none';
+			document.getElementById('booking').style.display = 'flex';
+		};
+
+		// Helper: get bookings from localStorage
+		function getBookings() {
+			return JSON.parse(localStorage.getItem('coachABookings') || '[]');
+		}
+		function saveBooking(booking) {
+			const bookings = getBookings();
+			bookings.push(booking);
+			localStorage.setItem('coachABookings', JSON.stringify(bookings));
+		}
+
+		// Populate time options 8am-8pm, disabling booked slots
+		function populateTimes(dateStr) {
+			const calendar = document.getElementById('calendar-times');
+			calendar.innerHTML = '';
+			const bookings = getBookings().filter(b => b.date === dateStr);
+			for(let h=8; h<=20; h++) {
+				let hour = h > 12 ? h-12 : h;
+				let ampm = h >= 12 ? 'PM' : 'AM';
+				let label = `${hour}:00 ${ampm}`;
+				let isBooked = bookings.some(b => b.time === label);
+				let btn = document.createElement('button');
+				btn.type = 'button';
+				btn.textContent = label + (isBooked ? ' (Booked)' : '');
+				btn.disabled = isBooked;
+				btn.style.background = isBooked ? '#e5e7eb' : '#2563eb';
+				btn.style.color = isBooked ? '#888' : '#fff';
+				btn.style.border = 'none';
+				btn.style.borderRadius = '8px';
+				btn.style.padding = '0.6rem 0.2rem';
+				btn.style.fontWeight = '600';
+				btn.style.cursor = isBooked ? 'not-allowed' : 'pointer';
+				btn.onclick = function() {
+					document.getElementById('time').value = label;
+					// Highlight selected
+					Array.from(calendar.children).forEach(b=>b.style.outline='none');
+					btn.style.outline = '3px solid #10b981';
+				};
+				calendar.appendChild(btn);
+			}
+			// Clear selection if all are booked
+			document.getElementById('time').value = '';
+		}
+
+		// Price calculation
+		function updatePrice() {
+			const duration = document.getElementById('duration').value;
+			const base = 65 * (parseInt(duration)/60);
+			const fee = base * 0.025;
+			const total = base + fee;
+			document.getElementById('priceDisplay').textContent = `Total: $${total.toFixed(2)} ($${base.toFixed(2)} + $${fee.toFixed(2)} booking fee)`;
+		}
+		document.getElementById('duration').onchange = updatePrice;
+
+		// (Weather display removed)
+
+		document.getElementById('date').onchange = function() {
+			document.getElementById('confirmation').textContent = '';
+			const dateStr = this.value;
+			populateTimes(dateStr);
+		};
+
+		// Initial population
+		const today = new Date().toISOString().split('T')[0];
+		document.getElementById('date').setAttribute('min', today);
+		populateTimes(today);
+		updatePrice();
+
+		// Booking form submit
+		document.getElementById('bookingForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			const name = document.getElementById('name').value;
+			const email = document.getElementById('email').value;
+			const phone = document.getElementById('phone').value;
+			const date = document.getElementById('date').value;
+			const time = document.getElementById('time').value;
+			const duration = document.getElementById('duration').value;
+			const notes = document.getElementById('notes') ? document.getElementById('notes').value : '';
+			saveBooking({ name, email, phone, date, time, duration, notes });
+			document.getElementById('confirmation').textContent = '✅ Your lesson is booked! Coach A will contact you soon.';
+			// Email confirmation (demo only)
+			setTimeout(()=>{
+				alert('Confirmation email sent to ' + email);
+			}, 500);
+			document.getElementById('bookingForm').reset();
+			populateTimes(date);
+			updatePrice();
+		});
+		// Responsive/mobile tweaks (simple)
+		window.addEventListener('resize', function() {
+			document.querySelectorAll('.container').forEach(c => {
+				c.style.maxWidth = window.innerWidth < 500 ? '98vw' : '400px';
+			});
+		});
+		window.dispatchEvent(new Event('resize'));
+	</script>
+	</script>
+</body>
+</html>
